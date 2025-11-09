@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -51,9 +51,32 @@ async function run() {
       const result = await moviesCollection.find().toArray();
       res.send(result);
     });
+    app.get("/movies/:id", async (req, res) => {
+      const id = req.params.id;
+      const result = await moviesCollection.findOne({ _id: new ObjectId(id) });
+      res.send(result);
+    });
     app.post("/movies", verifyFireBaseToken, async (req, res) => {
       const data = req.body;
       const result = await moviesCollection.insertOne(data);
+      res.send(result);
+    });
+    app.put("/movies/:id", async (req, res) => {
+      const id = req.params.id;
+      const data = req.body;
+      const objectId = new ObjectId(id);
+      const filter = { _id: objectId };
+      const update = {
+        $set: data,
+      };
+      const result = await moviesCollection.updateOne(filter, update);
+      res.send(result);
+    });
+    app.delete("/movies/:id", async (req, res) => {
+      const id = req.params.id;
+      const objectId = new ObjectId(id);
+      const filter = { _id: objectId };
+      const result = await moviesCollection.deleteOne(filter);
       res.send(result);
     });
 
