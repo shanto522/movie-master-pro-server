@@ -47,6 +47,7 @@ async function run() {
 
     const db = client.db("movies-db");
     const moviesCollection = db.collection("movies");
+    const wishlistCollection = db.collection("wishlist");
     app.get("/movies", async (req, res) => {
       const result = await moviesCollection.find().toArray();
       res.send(result);
@@ -78,6 +79,39 @@ async function run() {
       const filter = { _id: objectId };
       const result = await moviesCollection.deleteOne(filter);
       res.send(result);
+    });
+
+    app.post("/wishlist", async (req, res) => {
+      const movie = req.body;
+      try {
+        const result = await wishlistCollection.insertOne(movie);
+        res.status(201).send(result);
+      } catch (error) {
+        res.status(500).send({ message: "Failed to add to wishlist", error });
+      }
+    });
+
+    app.get("/wishlist", async (req, res) => {
+      try {
+        const email = req.query.email; 
+        const query = email ? { addedBy: email } : {};
+        const wishlist = await wishlistCollection.find(query).toArray();
+        res.send(wishlist);
+      } catch (error) {
+        res.status(500).send({ message: "Failed to load wishlist", error });
+      }
+    });
+
+    app.delete("/wishlist/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const result = await wishlistCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "Failed to remove", error });
+      }
     });
 
     await client.db("admin").command({ ping: 1 });
