@@ -81,37 +81,53 @@ async function run() {
       res.send(result);
     });
 
-    app.post("/wishlist", async (req, res) => {
+    app.post("/wishlist", verifyFireBaseToken, async (req, res) => {
       const movie = req.body;
+      const userEmail = req.userEmail;
+
       try {
-        const result = await wishlistCollection.insertOne(movie);
+        const exists = await wishlistCollection.findOne({
+          movieId: movie._id,
+          addedBy: userEmail,
+        });
+
+        if (exists)
+          return res.status(400).send({ message: "Movie already in wishlist" });
+
+        const wishlistMovie = {
+          movieId: movie._id,
+          title: movie.title,
+          genre: movie.genre,
+          rating: movie.rating,
+          posterUrl: movie.posterUrl,
+          addedBy: userEmail,
+        };
+
+        const result = await wishlistCollection.insertOne(wishlistMovie);
         res.status(201).send(result);
       } catch (error) {
         res.status(500).send({ message: "Failed to add to wishlist", error });
       }
     });
 
-    app.get("/wishlist", async (req, res) => {
-      try {
-        const email = req.query.email; 
-        const query = email ? { addedBy: email } : {};
-        const wishlist = await wishlistCollection.find(query).toArray();
-        res.send(wishlist);
-      } catch (error) {
-        res.status(500).send({ message: "Failed to load wishlist", error });
-      }
+    app.get("/wishlist", verifyFireBaseToken, async (req, res) => {
+      const userEmail = req.userEmail;
+      const wishlist = await wishlistCollection
+        .find({ addedBy: userEmail })
+        .toArray();
+      res.send(wishlist);
     });
 
-    app.delete("/wishlist/:id", async (req, res) => {
-      try {
-        const id = req.params.id;
-        const result = await wishlistCollection.deleteOne({
-          _id: new ObjectId(id),
-        });
-        res.send(result);
-      } catch (error) {
-        res.status(500).send({ message: "Failed to remove", error });
-      }
+    app.delete("/wishlist/:id", verifyFireBaseToken, async (req, res) => {
+      const userEmail = req.userEmail;
+      const id = req.params.id;
+
+      const result = await wishlistCollection.deleteOne({
+        _id: new ObjectId(id),
+        addedBy: userEmail,
+      });
+
+      res.send(result);
     });
 
     await client.db("admin").command({ ping: 1 });
