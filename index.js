@@ -81,6 +81,18 @@ async function run() {
       res.send(result);
     });
 
+    app.put("/movies/update/:id", verifyFireBaseToken, async (req, res) => {
+      const id = req.params.id;
+      const data = req.body;
+      const objectId = new ObjectId(id);
+      const filter = { _id: objectId };
+      const update = {
+        $set: data,
+      };
+      const result = await moviesCollection.updateOne(filter, update);
+      res.send(result);
+    });
+
     app.post("/wishlist", verifyFireBaseToken, async (req, res) => {
       const movie = req.body;
       const userEmail = req.userEmail;
@@ -127,6 +139,12 @@ async function run() {
         addedBy: userEmail,
       });
 
+      res.send(result);
+    });
+
+    app.post("/movies/add", verifyFireBaseToken, async (req, res) => {
+      const data = req.body;
+      const result = await moviesCollection.insertOne(data);
       res.send(result);
     });
 
