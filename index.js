@@ -93,6 +93,54 @@ async function run() {
       res.send(result);
     });
 
+    app.post("/movies/add", verifyFireBaseToken, async (req, res) => {
+      const data = req.body;
+      const result = await moviesCollection.insertOne(data);
+      res.send(result);
+    });
+
+    //---------------------------------
+    app.get("/genres", async (req, res) => {
+      try {
+        const genres = await moviesCollection.distinct("genre");
+        res.send(genres);
+      } catch (err) {
+        res.status(500).send({ message: "Failed to fetch genres", error: err });
+      }
+    });
+    app.get("/movies/filter", verifyFireBaseToken, async (req, res) => {
+      const { genres, minRating, maxRating } = req.query;
+      const filter = {};
+
+      if (genres) filter.genre = { $in: genres.split(",") };
+      if (minRating && maxRating)
+        filter.rating = { $gte: Number(minRating), $lte: Number(maxRating) };
+
+      try {
+        const movies = await moviesCollection.find(filter).toArray();
+        res.send(movies);
+      } catch (error) {
+        res
+          .status(500)
+          .send({ message: "Failed to fetch filtered movies", error });
+      }
+    });
+
+    //--------------------------------
+
+    app.get("/search", async (req, res) => {
+      const search_text = req.query.search || "";
+      try {
+        const result = await moviesCollection
+          .find({ title: { $regex: search_text, $options: "i" } })
+          .toArray();
+
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "Search failed", error });
+      }
+    });
+
     app.post("/wishlist", verifyFireBaseToken, async (req, res) => {
       const movie = req.body;
       const userEmail = req.userEmail;
@@ -135,12 +183,6 @@ async function run() {
         addedBy: userEmail,
       });
 
-      res.send(result);
-    });
-
-    app.post("/movies/add", verifyFireBaseToken, async (req, res) => {
-      const data = req.body;
-      const result = await moviesCollection.insertOne(data);
       res.send(result);
     });
 
