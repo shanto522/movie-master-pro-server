@@ -24,7 +24,7 @@ const verifyFireBaseToken = async (req, res, next) => {
   const token = authorization.split(" ")[1];
   try {
     const decoded = await admin.auth().verifyIdToken(token);
-    req.token_email = decoded.email;
+    req.userEmail = decoded.email;
     next();
   } catch {
     return res.status(401).send({ message: "unauthorized access" });
@@ -99,7 +99,7 @@ async function run() {
 
       try {
         const exists = await wishlistCollection.findOne({
-          movieId: movie._id,
+          movieId: movie.movieId,
           addedBy: userEmail,
         });
 
@@ -107,11 +107,7 @@ async function run() {
           return res.status(400).send({ message: "Movie already in wishlist" });
 
         const wishlistMovie = {
-          movieId: movie._id,
-          title: movie.title,
-          genre: movie.genre,
-          rating: movie.rating,
-          posterUrl: movie.posterUrl,
+          ...movie,
           addedBy: userEmail,
         };
 
