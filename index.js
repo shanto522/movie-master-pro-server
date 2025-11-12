@@ -31,7 +31,7 @@ const verifyFireBaseToken = async (req, res, next) => {
   }
 };
 
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.9vhb7u9.mongodb.net/movies-db?retryWrites=true&w=majority`;
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.9vhb7u9.mongodb.net/moviemaster?retryWrites=true&w=majority`;
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -120,6 +120,7 @@ async function run() {
         res.status(500).send({ message: "Filtering failed", error });
       }
     });
+
 
     app.get("/search", async (req, res) => {
       const search_text = req.query.search || "";
