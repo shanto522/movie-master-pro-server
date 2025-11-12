@@ -31,7 +31,7 @@ const verifyFireBaseToken = async (req, res, next) => {
   }
 };
 
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.9vhb7u9.mongodb.net/moviemaster?retryWrites=true&w=majority`;
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.9vhb7u9.mongodb.net/movies-db?retryWrites=true&w=majority`;
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -99,34 +99,27 @@ async function run() {
       res.send(result);
     });
 
-    //---------------------------------
-    app.get("/genres", async (req, res) => {
-      try {
-        const genres = await moviesCollection.distinct("genre");
-        res.send(genres);
-      } catch (err) {
-        res.status(500).send({ message: "Failed to fetch genres", error: err });
-      }
-    });
-    app.get("/movies/filter", verifyFireBaseToken, async (req, res) => {
+    app.get("/filter", async (req, res) => {
       const { genres, minRating, maxRating } = req.query;
-      const filter = {};
 
-      if (genres) filter.genre = { $in: genres.split(",") };
-      if (minRating && maxRating)
-        filter.rating = { $gte: Number(minRating), $lte: Number(maxRating) };
+      const query = {};
+      if (genres) {
+        const genreArray = genres.split(",");
+        query.genre = { $in: genreArray };
+      }
+      if (minRating || maxRating) {
+        query.rating = {};
+        if (minRating) query.rating.$gte = parseFloat(minRating);
+        if (maxRating) query.rating.$lte = parseFloat(maxRating);
+      }
 
       try {
-        const movies = await moviesCollection.find(filter).toArray();
-        res.send(movies);
+        const result = await moviesCollection.find(query).toArray();
+        res.send(result);
       } catch (error) {
-        res
-          .status(500)
-          .send({ message: "Failed to fetch filtered movies", error });
+        res.status(500).send({ message: "Filtering failed", error });
       }
     });
-
-    //--------------------------------
 
     app.get("/search", async (req, res) => {
       const search_text = req.query.search || "";
