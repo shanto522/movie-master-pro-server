@@ -17,7 +17,14 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
 
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "https://movie-master-pro-client.web.app",
+      "http://localhost:5173",
+    ],
+  })
+);
 app.use(express.json());
 
 const verifyFireBaseToken = async (req, res, next) => {
