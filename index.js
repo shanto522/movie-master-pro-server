@@ -21,7 +21,7 @@ app.use(
   cors({
     origin: [
       "https://movie-master-pro-client.web.app",
-      "http://localhost:5173",
+      "http://localhost:5176",
     ],
   })
 );
@@ -59,6 +59,81 @@ async function run() {
     const db = client.db("movies-db");
     const moviesCollection = db.collection("movies");
     const wishlistCollection = db.collection("wishlist");
+    const usersCollection = db.collection("users");
+    app.post("/users", verifyFireBaseToken, async (req, res) => {
+      const { email, name, photoURL } = req.body;
+      const exists = await usersCollection.findOne({ email });
+
+      if (exists) {
+        // Update name & photoURL if changed
+        await usersCollection.updateOne(
+          { email },
+          { $set: { name, photoURL } }
+        );
+        return res.send(await usersCollection.findOne({ email }));
+      }
+
+      const result = await usersCollection.insertOne({
+        name: name || "",
+        email,
+        photoURL: photoURL || "",
+        createdAt: new Date(),
+      });
+
+      res.send(await usersCollection.findOne({ email }));
+    });
+    // Update profile
+    app.put("/profile", verifyFireBaseToken, async (req, res) => {
+      try {
+        const email = req.userEmail; // Firebase থেকে
+        if (!email) return res.status(401).send({ message: "unauthorized" });
+
+        const { name, photoURL } = req.body;
+
+        const result = await usersCollection.updateOne(
+          { email },
+          { $set: { name, photoURL } }
+        );
+
+        if (result.matchedCount === 0) {
+          return res.status(404).send({ message: "User not found" });
+        }
+
+        const updatedUser = await usersCollection.findOne({ email });
+        res.send(updatedUser);
+      } catch (err) {
+        console.error(err);
+        res.status(500).send({ message: "Failed to update profile" });
+      }
+    });
+
+    app.get("/profile", verifyFireBaseToken, async (req, res) => {
+      try {
+        const email = req.userEmail;
+
+        const user = await usersCollection.findOne({ email });
+
+        // ✅ user না থাকলেও fallback
+        if (!user) {
+          return res.send({
+            name: "",
+            email,
+            photoURL: "",
+            createdAt: null,
+          });
+        }
+
+        res.send({
+          name: user.name,
+          email: user.email,
+          photoURL: user.photoURL,
+          createdAt: user.createdAt,
+        });
+      } catch (err) {
+        res.status(500).send({ message: "Failed to fetch profile" });
+      }
+    });
+
     app.get("/movies", async (req, res) => {
       const result = await moviesCollection.find().toArray();
       res.send(result);
